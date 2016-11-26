@@ -19,7 +19,7 @@ class LearningAgent(Agent):
         self.Q = dict()          # Create a Q-table which will be a dictionary of tuples
         self.epsilon = epsilon   # Random exploration factor
         self.alpha = alpha       # Learning factor
-
+        self.trials = 0
         ###########
         ## TO DO ##
         ###########
@@ -40,12 +40,15 @@ class LearningAgent(Agent):
         # Update epsilon using a decay function of your choice
         # Update additional class parameters as needed
         # If 'testing' is True, set epsilon and alpha to 0
+        self.trials += 1
         if testing == True:
             self.epsilon = 0
             self.alpha = 0
         else:
-            self.epsilon = self.epsilon - 0.02
-        
+            #self.epsilon = self.epsilon - 0.02 #choose another function
+            #self.epsilon = 1 / (self.trials**2)
+            self.epsilon = self.alpha ** self.trials
+            
         return None
 
     def build_state(self):
@@ -146,6 +149,7 @@ class LearningAgent(Agent):
         else:
             action = random.choice(self.valid_actions)
         """
+        l_actions = []
         if self.learning == False:
             random_number=randint(0,3)
             action = self.valid_actions[random_number]
@@ -158,7 +162,9 @@ class LearningAgent(Agent):
                 for key, val in self.Q.iteritems():
                     for aKey, aVal in val.iteritems():
                         if aVal == maxQ:
-                            action=aKey
+                            l_actions.append(aKey)
+                action = random.choice(l_actions)
+                            #action=aKey
         
         return action
 
@@ -178,9 +184,13 @@ class LearningAgent(Agent):
         p_Q = self.Q[state][action]
         next_state = self.build_state()
         self.createQ(next_state)
-        n_Q = (1-self.alpha)*p_Q + (self.alpha)*(reward + self.get_maxQ(next_state))
 
-        self.Q[state][action] = n_Q
+        #code from 1st review
+        #n_Q = (1-self.alpha)*p_Q + (self.alpha)*(reward + self.get_maxQ(next_state))
+
+        self.Q[self.state][action] = (1.0 - self.alpha) * self.Q[self.state][action] + self.alpha * reward
+        
+        #self.Q[state][action] = n_Q
 
         return
         #if self.learning == True:
@@ -221,7 +231,10 @@ def run(enforce_deadline=True):
     #   learning   - set to True to force the driving agent to use Q-learning
     #    * epsilon - continuous value for the exploration factor, default is 1
     #    * alpha   - continuous value for the learning rate, default is 0.5
-    agent = env.create_agent(LearningAgent, learning=True)
+
+    #agent = env.create_agent(LearningAgent, learning=True)
+    agent = env.create_agent(LearningAgent,learning=True, alpha = 0.985)
+    #agent = env.create_agent(LearningAgent,learning=True, epsilon = 2)
     
     ##############
     # Follow the driving agent
@@ -243,7 +256,7 @@ def run(enforce_deadline=True):
     # Flags:
     #   tolerance  - epsilon tolerance before beginning testing, default is 0.05 
     #   n_test     - discrete number of testing trials to perform, default is 0
-    sim.run(n_test=10, tolerance=0.02)
+    sim.run(n_test=20, tolerance=0.01)
 
 
 if __name__ == '__main__':
